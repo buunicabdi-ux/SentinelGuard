@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#08141c">
+    <meta name="description" content="Explainable cybersecurity inspection for suspicious web and API input.">
+    <title>SentinelGuard AI — Threat Inspection</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="SentinelGuard AI home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M16 2.8 27 7v8.2c0 7.1-4.5 11.8-11 14-6.5-2.2-11-6.9-11-14V7l11-4.2Z"/><path d="m10.8 16.2 3.4 3.4 7.2-7.3"/></svg>
+          </span>
+          <span class="brand-copy"><strong>SentinelGuard</strong><small>AI THREAT INSPECTION</small></span>
+        </a>
+        <div class="topbar-status"><span class="status-dot"></span> Deterministic engine <span class="status-divider">·</span> AI optional</div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="eyebrow-line"></span> INPUT SECURITY, EXPLAINED</p>
+            <h1>See the threat<br><span>before it gets through.</span></h1>
+            <p class="hero-description">Inspect suspicious web and API input with fast, explainable security rules. Understand the evidence, risk, and what to do next.</p>
+          </div>
+          <div class="hero-orbit" aria-hidden="true">
+            <div class="orbit-ring ring-one"></div><div class="orbit-ring ring-two"></div>
+            <div class="orbit-core"><svg viewBox="0 0 48 48"><path d="M24 5 40 11v12c0 10.3-6.5 17.1-16 20-9.5-2.9-16-9.7-16-20V11L24 5Z"/><path d="m16.5 24 5 5 10-11"/></svg></div>
+            <span class="orbit-label label-top">RULES ENGINE</span><span class="orbit-label label-bottom">AI ENRICHMENT</span>
+          </div>
+        </section>
+
+        <section class="dashboard" aria-label="Local inspection summary">
+          <div class="dashboard-heading"><div><p class="eyebrow">YOUR SESSION</p><h2>Inspection overview</h2></div><span class="local-label"><span class="status-dot"></span> Stored on this device</span></div>
+          <div class="metric-grid">
+            <article class="metric-card"><span class="metric-label">TOTAL INSPECTIONS</span><strong id="metric-total">0</strong><span class="metric-note">in local history</span></article>
+            <article class="metric-card metric-high"><span class="metric-label">HIGH RISK</span><strong id="metric-high">0</strong><span class="metric-note">risk score 70+</span></article>
+            <article class="metric-card metric-medium"><span class="metric-label">MEDIUM RISK</span><strong id="metric-medium">0</strong><span class="metric-note">risk score 30–69</span></article>
+            <article class="metric-card metric-low"><span class="metric-label">LOW RISK</span><strong id="metric-low">0</strong><span class="metric-note">risk score 0–29</span></article>
+            <article class="metric-card metric-category"><span class="metric-label">COMMON DETECTION</span><strong id="metric-category">—</strong><span class="metric-note">from your saved results</span></article>
+          </div>
+        </section>
+
+        <div class="workbench">
+          <section class="panel inspect-panel" aria-labelledby="inspect-title">
+            <div class="panel-heading">
+              <div><p class="eyebrow">ANALYSIS WORKSPACE</p><h2 id="inspect-title">Inspect input</h2></div>
+              <span class="engine-pill"><span class="pulse-dot"></span> ENGINE READY</span>
+            </div>
+            <p class="panel-intro">Choose a format, paste suspicious content, or start with a safe example.</p>
+            <div class="mode-tabs" role="tablist" aria-label="Input format">
+              <button class="mode-tab is-active" id="tab-text" type="button" role="tab" aria-selected="true" aria-controls="inspection-input" data-mode="text">Text inspection</button>
+              <button class="mode-tab" id="tab-json" type="button" role="tab" aria-selected="false" aria-controls="inspection-input" data-mode="json">JSON payload</button>
+            </div>
+            <div class="input-label-row"><label for="inspection-input" id="input-label">CONTENT TO INSPECT</label><span id="input-count">0 / 32,000</span></div>
+            <textarea id="inspection-input" spellcheck="false" placeholder="Paste a suspicious URL, message, query, or other untrusted input…" aria-describedby="input-help"></textarea>
+            <p id="input-help" class="input-help">Text mode analyzes the content as provided. No code or links are executed.</p>
+            <div class="examples-heading"><span>TRY A SAFE EXAMPLE</span><span class="examples-caption">Static samples · nothing is executed</span></div>
+            <div class="example-list" id="example-list"></div>
+            <div class="form-actions">
+              <button class="button button-primary" id="inspect-button" type="button"><span class="button-icon">⌕</span> Inspect input <span class="button-arrow">→</span></button>
+              <button class="button button-quiet" id="clear-button" type="button">Clear</button>
+            </div>
+            <div id="error-message" class="alert alert-error" role="alert" hidden></div>
+            <div class="privacy-note"><span class="lock-icon" aria-hidden="true">▣</span> Inspection runs locally on this service. History stays in this browser.</div>
+          </section>
+
+          <section class="panel result-panel" aria-labelledby="result-title" aria-live="polite">
+            <div class="panel-heading result-heading">
+              <div><p class="eyebrow">ANALYSIS OUTPUT</p><h2 id="result-title">Inspection result</h2></div>
+              <div class="result-actions" id="result-actions" hidden>
+                <button class="icon-button" id="export-button" type="button" title="Download JSON report" aria-label="Download JSON report"><svg viewBox="0 0 20 20"><path d="M10 2v10m0 0 4-4m-4 4L6 8M3 13v4h14v-4"/></svg></button>
+                <button class="icon-button" id="print-button" type="button" title="Print report" aria-label="Print report"><svg viewBox="0 0 20 20"><path d="M5 7V3h10v4M5 14H3V8h14v6h-2M5 11h10v6H5z"/></svg></button>
+              </div>
+            </div>
+            <div id="empty-state" class="empty-state">
+              <div class="empty-icon"><svg viewBox="0 0 48 48"><path d="M24 5 40 11v12c0 10.3-6.5 17.1-16 20-9.5-2.9-16-9.7-16-20V11L24 5Z"/><path d="m16.5 24 5 5 10-11"/></svg></div>
+              <h3>Ready when you are</h3>
+              <p>Inspect text or a structured payload to see its risk score, threat indicators, evidence, and recommended actions.</p>
+              <div class="detection-tags"><span>SQL INJECTION</span><span>XSS</span><span>COMMAND INJECTION</span><span>PATH TRAVERSAL</span><span>PHISHING</span></div>
+            </div>
+            <div id="loading-state" class="loading-state" hidden><span class="spinner"></span><strong>Inspecting input…</strong><span>Running deterministic security rules</span></div>
+            <div id="result-content" hidden></div>
+          </section>
+        </div>
+
+        <section class="history-section">
+          <div class="section-heading"><div><p class="eyebrow">LOCAL ACTIVITY</p><h2>Recent inspections</h2></div><button class="text-button" id="clear-history-button" type="button">Clear history</button></div>
+          <div id="history-list" class="history-list"></div>
+          <div id="history-empty" class="history-empty">Your recent inspections will appear here. Saved locally for this browser only.</div>
+        </section>
+
+        <section class="trust-note">
+          <span class="trust-icon">i</span>
+          <p><strong>Deterministic findings are authoritative.</strong> AI enrichment is optional and never changes rule findings or risk scoring. Pattern detection is heuristic—not proof that input is safe, and not a substitute for a full security review.</p>
+          <span class="ai-status" id="global-ai-status"><span class="status-dot status-dot-muted"></span> AI unavailable</span>
+        </section>
+      </main>
+      <footer><span>© SentinelGuard AI</span><span>Explainable input security <i>·</i> No external threat intelligence</span></footer>
+    </div>
+  </body>
+</html>
