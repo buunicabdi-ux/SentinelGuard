@@ -1,15 +1,17 @@
 # SentinelGuard AI
 
-SentinelGuard AI inspects suspicious web/API input, detects representative threats using deterministic security rules, explains evidence, calculates an internal risk score, and provides practical recommendations. A provider-neutral AI boundary is available for future enrichment, but no AI provider is configured in this repository/runtime.
+Suspicious phishing and scam messages, as well as malicious web/API input, can be difficult to understand from a simple warning. **SentinelGuard inspects submitted text and structured JSON payloads**, uses deterministic rules to detect supported security indicators, shows the matched evidence, assesses heuristic risk, and provides defensive recommendations.
 
-Deterministic rules are authoritative for patterns they recognize. This bounded heuristic engine is not complete vulnerability or malware detection; a clean result is not proof that input is safe. Phishing indicators are not external URL, sender, or domain reputation checks.
+> **Don't just tell me there's a threat. Show me why.**
+
+Deterministic rules are authoritative for patterns they recognize. This bounded heuristic engine is not complete vulnerability or malware detection; a clean result is not proof that input is safe. Phishing indicators are not external URL, sender, or domain reputation checks. No AI provider is configured in this repository/runtime, and the application currently makes no external AI calls. The provider-neutral AI boundary is optional architecture for possible future enrichment only.
 
 ## Features
 
 - Text inspection and structured JSON payload inspection.
 - Deterministic indicators for SQL injection, XSS, command injection, path traversal, and phishing.
 - Stable rule IDs, bounded/redacted evidence, per-finding recommendations, classification, severity, and score from 0 to 100.
-- Optional AI result contract with schema validation and deterministic fallback. No provider SDK, provider credentials, or external AI calls are configured.
+- Provider-neutral AI result contract with schema validation and deterministic fallback, reserved for optional future enrichment. No provider SDK, provider credentials, or external AI calls are configured.
 - Browser demo with safe static examples, responsive inspection/results view, local history, history-based summary metrics, JSON report download, and print.
 - Browser history is bounded and remains in local storage on the current device. The server does not persist inspections.
 
@@ -53,9 +55,11 @@ Health requests are excluded from the in-memory inspection rate limiter. The lim
 - `src/src/services/inspectionService.js` runs deterministic analysis first and then calls the provider-neutral AI boundary.
 - `src/src/ai/analyzer.js` validates optional supplementary AI data and fails safely. No provider adapter or external model is configured.
 
-## Using the demo
+## Demo
 
-Choose **Text inspection** or **JSON payload**, enter content or select a static example, and click **Inspect input**. Examples include SQL injection, XSS, path traversal, command injection, phishing indicators, benign security discussion, and a structured JSON payload. Examples are only submitted to SentinelGuard for analysis; they do not execute code or visit links.
+The demo illustrates phishing, SQL injection, command injection with multiple indicators, and clean input. Each inspection shows matched evidence, heuristic risk, and defensive recommendations. The examples are only submitted to SentinelGuard for analysis; they do not execute code or visit links.
+
+Choose **Text inspection** or **JSON payload**, enter content or select a static example, and click **Inspect input**. Available examples include SQL injection, XSS, path traversal, command injection, phishing indicators, benign security discussion, and a structured JSON payload.
 
 The results view displays risk, classification, severity, rule IDs, explanations, bounded evidence, and recommended actions. AI status is explicitly marked unavailable when no provider is configured. Inspection history and dashboard metrics derive only from results stored locally in this browser. History stores a short input preview (with common password, token, API-key, and authorization-shaped values redacted) and bounded result data, not the full inspected input. JSON exports also redact these common credential-shaped values. This is heuristic redaction, not reliable secret discovery; review exported reports before sharing them. Use **Clear history** to remove local history.
 
