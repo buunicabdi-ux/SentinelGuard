@@ -16,17 +16,17 @@
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 32 32"><path d="M16 2.8 27 7v8.2c0 7.1-4.5 11.8-11 14-6.5-2.2-11-6.9-11-14V7l11-4.2Z"/><path d="m10.8 16.2 3.4 3.4 7.2-7.3"/></svg>
           </span>
-          <span class="brand-copy"><strong>SentinelGuard</strong><small>AI THREAT INSPECTION</small></span>
+          <span class="brand-copy"><strong>SentinelGuard</strong><small>INPUT INSPECTION</small></span>
         </a>
-        <div class="topbar-status"><span class="status-dot"></span> Deterministic engine <span class="status-divider">·</span> AI optional</div>
+        <div class="topbar-status"><span class="status-dot"></span> RULE-BASED ANALYSIS ACTIVE <span class="status-divider">·</span> AI OPTIONAL</div>
       </header>
 
       <main>
         <section class="hero">
           <div class="hero-copy">
             <p class="eyebrow"><span class="eyebrow-line"></span> INPUT SECURITY, EXPLAINED</p>
-            <h1>See the threat<br><span>before it gets through.</span></h1>
-            <p class="hero-description">Inspect suspicious web and API input with fast, explainable security rules. Understand the evidence, risk, and what to do next.</p>
+            <h1>Inspect suspicious input.<br><span>Understand what was found.</span></h1>
+            <p class="hero-description">SentinelGuard analyzes text and JSON payloads for supported security patterns, then shows the evidence and recommended actions. It does not visit URLs, block traffic, or provide real-time protection.</p>
           </div>
           <div class="hero-orbit" aria-hidden="true">
             <div class="orbit-ring ring-one"></div><div class="orbit-ring ring-two"></div>
@@ -35,8 +35,8 @@
           </div>
         </section>
 
-        <section class="dashboard" aria-label="Local inspection summary">
-          <div class="dashboard-heading"><div><p class="eyebrow">YOUR SESSION</p><h2>Inspection overview</h2></div><span class="local-label"><span class="status-dot"></span> Stored on this device</span></div>
+        <section class="dashboard" id="inspection-dashboard" aria-label="Saved inspection summary" hidden>
+          <div class="dashboard-heading"><div><p class="eyebrow">SAVED HISTORY</p><h2>Inspection overview</h2></div><span class="local-label"><span class="status-dot"></span> Stored in this browser</span></div>
           <div class="metric-grid">
             <article class="metric-card"><span class="metric-label">TOTAL INSPECTIONS</span><strong id="metric-total">0</strong><span class="metric-note">in local history</span></article>
             <article class="metric-card metric-high"><span class="metric-label">HIGH RISK</span><strong id="metric-high">0</strong><span class="metric-note">risk score 70+</span></article>
@@ -52,25 +52,33 @@
               <div><p class="eyebrow">ANALYSIS WORKSPACE</p><h2 id="inspect-title">Inspect input</h2></div>
               <span class="engine-pill"><span class="pulse-dot"></span> ENGINE READY</span>
             </div>
-            <p class="panel-intro">Choose a format, paste suspicious content, or start with a safe example.</p>
+            <p class="panel-intro">Paste suspicious text, parameters, a message, or payload content. Nothing is executed, and URLs are not opened.</p>
             <div class="mode-tabs" role="tablist" aria-label="Input format">
-              <button class="mode-tab is-active" id="tab-text" type="button" role="tab" aria-selected="true" aria-controls="inspection-input" data-mode="text">Text inspection</button>
-              <button class="mode-tab" id="tab-json" type="button" role="tab" aria-selected="false" aria-controls="inspection-input" data-mode="json">JSON payload</button>
+              <button class="mode-tab is-active" id="tab-text" type="button" role="tab" aria-selected="true" aria-controls="panel-text" tabindex="0" data-mode="text">Text or message</button>
+              <button class="mode-tab" id="tab-json" type="button" role="tab" aria-selected="false" aria-controls="panel-json" tabindex="-1" data-mode="json">JSON payload</button>
             </div>
-            <div class="input-label-row"><label for="inspection-input" id="input-label">CONTENT TO INSPECT</label><span id="input-count">0 / 32,000</span></div>
-            <textarea id="inspection-input" spellcheck="false" placeholder="Paste a suspicious URL, message, query, or other untrusted input…" aria-describedby="input-help"></textarea>
-            <p id="input-help" class="input-help">Text mode analyzes the content as provided. No code or links are executed.</p>
+            <div id="panel-text" class="input-tabpanel" role="tabpanel" aria-labelledby="tab-text" tabindex="0">
+              <div class="input-label-row"><label for="inspection-input-text">TEXT TO INSPECT</label><span id="input-count-text">0 / 32,000</span></div>
+              <textarea id="inspection-input-text" spellcheck="false" placeholder="Paste suspicious text, parameters, a message, or payload content…" aria-describedby="input-help-text"></textarea>
+              <p id="input-help-text" class="input-help">Text is analyzed as provided. Links are not opened and code is not run.</p>
+            </div>
+            <div id="panel-json" class="input-tabpanel" role="tabpanel" aria-labelledby="tab-json" tabindex="0" hidden>
+              <div class="input-label-row"><label for="inspection-input-json">JSON PAYLOAD TO INSPECT</label><span id="input-count-json">0 / 32,768</span></div>
+              <textarea id="inspection-input-json" spellcheck="false" placeholder='Paste a JSON object or array, for example: {"comment":"..."}' aria-describedby="input-help-json"></textarea>
+              <p id="input-help-json" class="input-help">Nested JSON values are bounded and inspected as text. No code is executed.</p>
+            </div>
             <div class="examples-heading"><span>TRY A SAFE EXAMPLE</span><span class="examples-caption">Static samples · nothing is executed</span></div>
             <div class="example-list" id="example-list"></div>
             <div class="form-actions">
               <button class="button button-primary" id="inspect-button" type="button"><span class="button-icon">⌕</span> Inspect input <span class="button-arrow">→</span></button>
-              <button class="button button-quiet" id="clear-button" type="button">Clear</button>
+              <button class="button button-quiet" id="clear-button" type="button" aria-label="Reset the current input and result">Reset current</button>
             </div>
             <div id="error-message" class="alert alert-error" role="alert" hidden></div>
-            <div class="privacy-note"><span class="lock-icon" aria-hidden="true">▣</span> Inspection runs locally on this service. History stays in this browser.</div>
+            <p class="privacy-note"><span class="lock-icon" aria-hidden="true">i</span><span><strong>Privacy:</strong> Your content is sent to this SentinelGuard service for inspection. Up to 20 recent results stay in this browser’s local storage, which is not encrypted secure storage. Exports may include input excerpts; redaction is heuristic, so review reports before sharing.</span></p>
+            <p class="ai-availability" id="input-ai-status" role="status"><span class="status-dot status-dot-muted" aria-hidden="true"></span> AI analysis unavailable — deterministic security analysis is active.</p>
           </section>
 
-          <section class="panel result-panel" aria-labelledby="result-title" aria-live="polite">
+          <section class="panel result-panel" aria-labelledby="result-title">
             <div class="panel-heading result-heading">
               <div><p class="eyebrow">ANALYSIS OUTPUT</p><h2 id="result-title">Inspection result</h2></div>
               <div class="result-actions" id="result-actions" hidden>
@@ -84,20 +92,21 @@
               <p>Inspect text or a structured payload to see its risk score, threat indicators, evidence, and recommended actions.</p>
               <div class="detection-tags"><span>SQL INJECTION</span><span>XSS</span><span>COMMAND INJECTION</span><span>PATH TRAVERSAL</span><span>PHISHING</span></div>
             </div>
-            <div id="loading-state" class="loading-state" hidden><span class="spinner"></span><strong>Inspecting input…</strong><span>Running deterministic security rules</span></div>
+            <div id="loading-state" class="loading-state" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><strong>Inspecting input…</strong><span>Running deterministic security rules</span></div>
             <div id="result-content" hidden></div>
+            <p id="result-announcement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
           </section>
         </div>
 
         <section class="history-section">
-          <div class="section-heading"><div><p class="eyebrow">LOCAL ACTIVITY</p><h2>Recent inspections</h2></div><button class="text-button" id="clear-history-button" type="button">Clear history</button></div>
+          <div class="section-heading"><div><p class="eyebrow">SAVED ON THIS DEVICE</p><h2>Recent inspections</h2><p class="section-description">Reopen a saved result or remove it. This history is separate from your current inspection.</p></div><button class="text-button" id="clear-history-button" type="button" aria-label="Clear all saved inspection history">Clear saved history</button></div>
           <div id="history-list" class="history-list"></div>
-          <div id="history-empty" class="history-empty">Your recent inspections will appear here. Saved locally for this browser only.</div>
+          <div id="history-empty" class="history-empty">No saved inspections yet. Results you inspect will appear here in this browser.</div>
         </section>
 
         <section class="trust-note">
           <span class="trust-icon">i</span>
-          <p><strong>Deterministic findings are authoritative.</strong> AI enrichment is optional and never changes rule findings or risk scoring. Pattern detection is heuristic—not proof that input is safe, and not a substitute for a full security review.</p>
+          <p><strong>Rules and evidence lead.</strong> AI is optional and cannot change deterministic findings or risk scoring. Scores are heuristic, not probabilities; no detected pattern does not prove content is safe.</p>
           <span class="ai-status" id="global-ai-status"><span class="status-dot status-dot-muted"></span> AI unavailable</span>
         </section>
       </main>

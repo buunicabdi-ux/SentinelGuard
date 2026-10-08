@@ -21,10 +21,10 @@
   ];
   const $ = (selector) => document.querySelector(selector);
   const elements = {
-    input: $('#inspection-input'),
-    inputCount: $('#input-count'),
-    inputLabel: $('#input-label'),
-    inputHelp: $('#input-help'),
+    textInput: $('#inspection-input-text'),
+    jsonInput: $('#inspection-input-json'),
+    textCount: $('#input-count-text'),
+    jsonCount: $('#input-count-json'),
     inspect: $('#inspect-button'),
     clear: $('#clear-button'),
     error: $('#error-message'),
@@ -36,6 +36,9 @@
     history: $('#history-list'),
     historyEmpty: $('#history-empty'),
     clearHistory: $('#clear-history-button'),
+    dashboard: $('#inspection-dashboard'),
+    resultAnnouncement: $('#result-announcement'),
+    inputAiStatus: $('#input-ai-status'),
     export: $('#export-button'),
     print: $('#print-button'),
     aiStatus: $('#global-ai-status')
@@ -43,6 +46,28 @@
   let mode = 'text';
   let currentReport = null;
   let history = readHistory();
+
+  function activeInput() {
+    return mode === 'json' ? elements.jsonInput : elements.textInput;
+  }
+
+  function activeCounter() {
+    return mode === 'json' ? elements.jsonCount : elements.textCount;
+  }
+
+  function updateAIStatus(status) {
+    const available = status === 'available';
+    const label = available ? 'AI analysis is supplementary; deterministic security analysis remains authoritative.'
+      : 'AI analysis unavailable — deterministic security analysis is active.';
+    elements.inputAiStatus.replaceChildren(
+      element('span', `status-dot ${available ? '' : 'status-dot-muted'}`),
+      document.createTextNode(label)
+    );
+    elements.aiStatus.replaceChildren(
+      element('span', `status-dot ${available ? '' : 'status-dot-muted'}`),
+      document.createTextNode(available ? 'AI supplementary' : 'AI not active')
+    );
+  }
 
   function safeString(value, maximum = 1000) {
     return typeof value === 'string' ? value.slice(0, maximum) : '';
@@ -200,36 +225,33 @@
       button.type = 'button';
       button.addEventListener('click', () => {
         setMode(sample.mode);
-        elements.input.value = sample.value;
+        activeInput().value = sample.value;
         updateCounter();
         hideError();
-        elements.input.focus();
+        activeInput().focus();
       });
       elements.examples.append(button);
     }
   }
 
   function setMode(nextMode) {
+    if (nextMode !== mode) hideError();
     mode = nextMode;
-    document.querySelectorAll('.mode-tab').forEach((button) => {
+    document.querySelectorAll('[role="tab"]').forEach((button) => {
       const active = button.dataset.mode === mode;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-selected', String(active));
+      button.tabIndex = active ? 0 : -1;
     });
-    elements.inputLabel.textContent = mode === 'json' ? 'JSON PAYLOAD TO INSPECT' : 'CONTENT TO INSPECT';
-    elements.input.placeholder = mode === 'json'
-      ? '{\n  "query": "paste a structured payload here"\n}'
-      : 'Paste a suspicious URL, message, query, or other untrusted input…';
-    elements.inputHelp.textContent = mode === 'json'
-      ? 'Enter a JSON object or array. Nested values are bounded and analyzed as text; nothing is executed.'
-      : 'Text mode analyzes the content as provided. No code or links are executed.';
+    $('#panel-text').hidden = mode !== 'text';
+    $('#panel-json').hidden = mode !== 'json';
     updateCounter();
   }
 
   function updateCounter() {
     const maximum = mode === 'json' ? 32768 : 32000;
-    elements.inputCount.textContent = `${elements.input.value.length.toLocaleString()} / ${maximum.toLocaleString()}`;
-    elements.inputCount.classList.toggle('counter-over', elements.input.value.length > maximum);
+    activeCounter().textContent = `${activeInput().value.length.toLocaleString()} / ${maximum.toLocaleString()}`;
+    activeCounter().classList.toggle('counter-over', activeInput().value.length > maximum);
   }
 
   function renderReport(report, timestamp, preview, recordId) {
@@ -243,6 +265,8 @@
 
     const scoreRow = element('div', 'score-row');
     const gauge = element('div', `score-gauge ${scoreClass(data.riskScore)}`);
+    gauge.setAttribute('role', 'img');
+    gauge.setAttribute('aria-label', `${scoreLabel(data.riskScore)}: ${data.riskScore} out of 100`);
     const gaugeSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     gaugeSvg.setAttribute('viewBox', '0 0 100 100');
     gaugeSvg.setAttribute('aria-hidden', 'true');
@@ -263,13 +287,18 @@
     inner.append(element('span', 'score-number', String(data.riskScore)), element('span', 'score-denom', 'RISK / 100'));
     gauge.append(gaugeSvg, inner);
     const copy = element('div', 'score-copy');
-    copy.append(element('p', 'eyebrow', 'DETERMINISTIC ASSESSMENT'));
+    copy.append(element('p', 'eyebrow', 'RULE-BASED RESULT'));
+    copy.append(element('span', 'result-term', 'Classification'));
     copy.append(element('h3', '', data.classification.replaceAll('_', ' ')));
     copy.append(element('p', '', data.findings.length
       ? `${data.findings.length} security indicator${data.findings.length === 1 ? '' : 's'} matched`
-      : 'No configured patterns matched. This is not proof of safety.'));
+      : 'No supported indicators were detected. This does not prove the input is safe.'));
     copy.append(element('span', `risk-badge ${scoreClass(data.riskScore)}`, scoreLabel(data.riskScore)));
-    copy.append(element('span', `risk-badge ${severityClass(data.severity)}`, `Severity: ${data.severity}`));
+    copy.append(element('p', 'risk-explainer', 'Heuristic score based on detected indicators, not a probability. Higher scores mean more concerning indicators were found.'));
+    const severityLine = element('p', 'severity-explainer');
+    severityLine.append(element('strong', '', `Overall severity: ${data.severity}`));
+    severityLine.append(document.createTextNode(' — the highest severity among matched rules and the risk-score band.'));
+    copy.append(severityLine);
     scoreRow.append(gauge, copy);
     elements.result.append(scoreRow);
 
@@ -279,7 +308,7 @@
     elements.result.append(meta);
 
     const findingHeading = element('div', 'subheading');
-    findingHeading.append(element('h3', '', 'Deterministic findings'));
+    findingHeading.append(element('h3', '', 'What the rules found'));
     findingHeading.append(element('span', '', `${data.findings.length} matched`));
     elements.result.append(findingHeading);
 
@@ -289,15 +318,15 @@
         const card = element('article', `finding-card ${severityClass(finding.severity)}`);
           const head = element('div', 'finding-top');
         head.append(element('span', 'finding-category', finding.category.replaceAll('_', ' ')));
-        head.append(element('span', 'finding-code', finding.ruleId));
         head.append(element('span', 'finding-severity', finding.severity));
+        head.append(element('span', 'finding-code', finding.ruleId));
         card.append(head, element('p', '', finding.description));
         if (finding.evidence) {
-          card.append(element('span', 'evidence-label', 'BOUNDED EVIDENCE'));
+          card.append(element('span', 'evidence-label', 'WHY IT WAS FLAGGED · MATCHED EVIDENCE'));
           card.append(element('code', 'finding-evidence', finding.evidence));
         }
         if (finding.recommendation) {
-          card.append(element('span', 'recommendation-label', 'RECOMMENDED ACTION'));
+          card.append(element('span', 'recommendation-label', 'WHAT TO DO'));
           card.append(element('p', '', finding.recommendation));
         }
         list.append(card);
@@ -318,8 +347,8 @@
 
     const aiCard = element('div', 'ai-card');
     const aiHead = element('div', 'ai-card-head');
-    aiHead.append(element('span', '', 'AI ENRICHMENT'));
-    aiHead.append(element('span', '', data.ai.status === 'available' ? 'SUPPLEMENTARY' : 'UNAVAILABLE'));
+    aiHead.append(element('span', '', 'OPTIONAL AI ANALYSIS'));
+    aiHead.append(element('span', '', data.ai.status === 'available' ? 'SUPPLEMENTARY' : 'NOT ACTIVE'));
     aiCard.append(aiHead);
     if (data.ai.status === 'available') {
       aiCard.append(element('p', '', data.ai.summary || 'Supplementary AI context is available.'));
@@ -336,13 +365,14 @@
       }
       aiCard.append(element('p', '', 'AI context cannot change deterministic findings or risk score.'));
     } else {
-      aiCard.append(element('p', '', 'No AI provider is configured. Deterministic analysis is complete and remains authoritative.'));
+      aiCard.append(element('p', '', 'AI analysis unavailable — deterministic security analysis is still active.'));
     }
     elements.result.append(aiCard);
 
-    elements.aiStatus.replaceChildren();
-    elements.aiStatus.append(element('span', `status-dot ${data.ai.status === 'available' ? '' : 'status-dot-muted'}`));
-    elements.aiStatus.append(document.createTextNode(data.ai.status === 'available' ? 'AI supplementary' : 'AI unavailable'));
+    updateAIStatus(data.ai.status);
+    elements.resultAnnouncement.textContent = data.findings.length
+      ? `Inspection complete. ${scoreLabel(data.riskScore)}. ${data.findings.length} finding${data.findings.length === 1 ? '' : 's'} detected: ${data.classification.replaceAll('_', ' ')}.`
+      : 'Inspection complete. No supported indicators were detected. This does not prove the input is safe.';
   }
 
   function renderHistory() {
@@ -364,8 +394,13 @@
           report: record.report
         };
         setMode(record.mode);
-        elements.input.value = record.preview;
+        activeInput().value = record.preview;
         updateCounter();
+        if (record.preview) {
+          showError('This saved entry shows a redacted, shortened preview; it may not contain the original full input.');
+        } else {
+          hideError();
+        }
         renderReport(record.report, record.timestamp, record.preview, record.id);
         document.querySelector('.result-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -399,14 +434,15 @@
     }
     const common = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
     $('#metric-category').textContent = common ? common[0].replaceAll('_', ' ') : '—';
+    elements.dashboard.hidden = history.length === 0;
   }
 
   async function inspect() {
     hideError();
-    const raw = elements.input.value;
+    const raw = activeInput().value;
     if (!raw.trim()) {
       showError('Enter content to inspect or choose one of the examples.');
-      elements.input.focus();
+      activeInput().focus();
       return;
     }
     let endpoint = '/api/v1/inspect';
@@ -419,7 +455,7 @@
         endpoint = '/api/v1/inspect/payload';
       } catch {
         showError('Enter valid JSON containing an object or array payload.');
-        elements.input.focus();
+        activeInput().focus();
         return;
       }
     } else {
@@ -505,33 +541,60 @@
   }
 
   function clearCurrent() {
-    elements.input.value = '';
+    elements.textInput.value = '';
+    elements.jsonInput.value = '';
     updateCounter();
     hideError();
     elements.result.hidden = true;
     elements.actions.hidden = true;
     elements.loading.hidden = true;
     elements.empty.hidden = false;
+    elements.resultAnnouncement.textContent = '';
     currentReport = null;
-    elements.input.focus();
+    updateAIStatus('unavailable');
+    activeInput().focus();
   }
 
   elements.inspect.addEventListener('click', inspect);
-  elements.input.addEventListener('input', updateCounter);
-  elements.input.addEventListener('keydown', (event) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') inspect();
+  [elements.textInput, elements.jsonInput].forEach((input) => {
+    input.addEventListener('input', updateCounter);
+    input.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') inspect();
+    });
   });
   elements.clear.addEventListener('click', clearCurrent);
   elements.export.addEventListener('click', downloadReport);
   elements.print.addEventListener('click', () => window.print());
   elements.clearHistory.addEventListener('click', () => {
-    history = [];
-    try { localStorage.removeItem(HISTORY_KEY); } catch { showError('Could not clear browser history storage.'); }
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+      history = [];
+    } catch {
+      showError('Could not clear saved history from browser storage.');
+      return;
+    }
     renderDashboard();
     renderHistory();
   });
-  document.querySelectorAll('.mode-tab').forEach((button) =>
-    button.addEventListener('click', () => setMode(button.dataset.mode)));
+  document.querySelectorAll('[role="tab"]').forEach((button) => {
+    button.addEventListener('click', () => setMode(button.dataset.mode));
+    button.addEventListener('keydown', (event) => {
+      const tabs = [...document.querySelectorAll('[role="tab"]')];
+      let index = tabs.indexOf(button);
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+        index = (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+      } else if (event.key === 'Home') {
+        index = 0;
+      } else if (event.key === 'End') {
+        index = tabs.length - 1;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      setMode(tabs[index].dataset.mode);
+      tabs[index].focus();
+    });
+  });
 
   renderExamples();
   renderDashboard();
