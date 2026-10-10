@@ -43,6 +43,9 @@ test('serves the same-origin demo UI and static assets with security policy', as
   assert.equal(response.status, 200);
   assert.match(html, /SentinelGuard AI/);
   assert.match(html, /inspection-input/);
+  assert.match(html, /id="ai-consent" type="checkbox"/);
+  assert.doesNotMatch(html, /id="ai-consent" type="checkbox" checked/);
+  assert.match(html, /redacted, bounded excerpt of this input to Featherless/);
   assert.match(response.headers.get('content-security-policy'), /default-src 'self'/);
 
   const script = await fetch(`${base}/app.js`);
@@ -98,7 +101,7 @@ test('text inspection endpoint detects a known malicious pattern and has disable
   assert.equal(body.success, true);
   assert.equal(body.data.classification, 'sql_injection');
   assert.equal(body.data.riskScore, 70);
-  assert.equal(body.data.ai.status, 'unavailable');
+  assert.equal(body.data.ai.status, 'not_requested');
 });
 
 test('redacts common credential-shaped values from bounded finding evidence', async (t) => {
@@ -129,12 +132,84 @@ test('AI adapter failure cannot remove deterministic findings', async (t) => {
   const base = await withServer(t, {}, {
     analyzer: async () => { throw new Error('provider implementation details'); }
   });
-  const response = await post(base, '/api/v1/inspect', { user_input: '<script>alert(1)</script>' });
+  const response = await post(base, '/api/v1/inspect', {
+    user_input: '<script>alert(1)</script>',
+    ai_consent: true
+  });
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.data.classification, 'xss');
   assert.ok(body.data.findings.some((finding) => finding.ruleId === 'XSS-001'));
   assert.deepEqual(body.data.ai, { enabled: true, status: 'unavailable' });
+});
+
+test('requires per-inspection consent and skips AI for detected secrets', async (t) => {
+  let analyzerCalls = 0;
+  const base = await withServer(t, {}, {
+    analyzer: async () => {
+      analyzerCalls += 1;
+      return { summary: 'Supplementary analysis.' };
+    }
+  });
+
+  const notConsented = await post(base, '/api/v1/inspect', {
+    user_input: '<script>alert(1)</script>'
+  });
+  const deterministicOnly = await notConsented.json();
+  assert.equal(deterministicOnly.data.ai.status, 'not_requested');
+  assert.equal(analyzerCalls, 0);
+  assert.equal(deterministicOnly.data.classification, 'xss');
+  assert.equal(deterministicOnly.data.riskScore, 70);
+
+  const sensitive = await post(base, '/api/v1/inspect', {
+    user_input: 'password="local-example-secret" <script>alert(1)</script>',
+    ai_consent: true
+  });
+  const skipped = await sensitive.json();
+  assert.equal(skipped.data.ai.status, 'skipped_sensitive');
+  assert.equal(analyzerCalls, 0);
+  assert.equal(skipped.data.classification, 'xss');
+  assert.equal(skipped.data.riskScore, 70);
+});
+
+test('consented AI enrichment does not override deterministic inspection results', async (t) => {
+  const base = await withServer(t, {}, {
+    analyzer: async () => ({
+      summary: 'Supplementary context only.',
+      explanation: 'Additional context.',
+      confidence: 0.5
+    })
+  });
+  const response = await post(base, '/api/v1/inspect', {
+    user_input: '<script>alert(1)</script>',
+    ai_consent: true
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.data.ai.status, 'available');
+  assert.equal(body.data.classification, 'xss');
+  assert.equal(body.data.riskScore, 70);
+  assert.ok(body.data.findings.some((finding) => finding.ruleId === 'XSS-001'));
+});
+
+test('propagates explicit consent for JSON payload inspection', async (t) => {
+  let analyzerCalls = 0;
+  const base = await withServer(t, {}, {
+    analyzer: async () => {
+      analyzerCalls += 1;
+      return { summary: 'Supplementary payload analysis.' };
+    }
+  });
+  const response = await post(base, '/api/v1/inspect/payload', {
+    payload: { comment: '<script>alert(1)</script>' },
+    ai_consent: true
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(analyzerCalls, 1);
+  assert.equal(body.data.ai.status, 'available');
+  assert.equal(body.data.classification, 'xss');
+  assert.equal(body.data.riskScore, 70);
 });
 
 test('AI failure reporting errors do not interrupt deterministic inspection', async (t) => {
@@ -143,7 +218,8 @@ test('AI failure reporting errors do not interrupt deterministic inspection', as
     onAiFailure: () => { throw new Error('reporting callback failure'); }
   });
   const response = await post(base, '/api/v1/inspect', {
-    user_input: '<script>alert(1)</script>'
+    user_input: '<script>alert(1)</script>',
+    ai_consent: true
   });
   const body = await response.json();
   assert.equal(response.status, 200);

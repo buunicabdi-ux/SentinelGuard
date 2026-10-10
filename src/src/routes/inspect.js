@@ -6,7 +6,8 @@ function createInspectRouter({ inspectionService, maxInputChars }) {
   const { inputSchema, payloadSchema } = createInspectSchemas(maxInputChars);
 
   router.post('/inspect', validateBody(inputSchema), async (req, res) => {
-    const data = await inspectionService.inspect(req.validatedBody.user_input);
+    const { user_input: input, ai_consent: aiConsent } = req.validatedBody;
+    const data = await inspectionService.inspect(input, { aiConsent: aiConsent === true });
     res.locals.inspection = {
       riskScore: data.riskScore,
       classification: data.classification
@@ -15,8 +16,9 @@ function createInspectRouter({ inspectionService, maxInputChars }) {
   });
 
   router.post('/inspect/payload', validateBody(payloadSchema), async (req, res) => {
-    const normalized = normalizePayload(req.validatedBody.payload, { maxChars: maxInputChars });
-    const data = await inspectionService.inspect(normalized);
+    const { payload, ai_consent: aiConsent } = req.validatedBody;
+    const normalized = normalizePayload(payload, { maxChars: maxInputChars });
+    const data = await inspectionService.inspect(normalized, { aiConsent: aiConsent === true });
     res.locals.inspection = {
       riskScore: data.riskScore,
       classification: data.classification

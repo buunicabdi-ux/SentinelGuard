@@ -12,6 +12,14 @@ test('validates required non-empty string input and maximum size', () => {
   assert.equal(inputSchema.safeParse({ user_input: 'x'.repeat(33) }).success, false);
 });
 
+test('accepts optional boolean AI consent and rejects other consent values', () => {
+  assert.equal(inputSchema.safeParse({ user_input: 'hello', ai_consent: true }).success, true);
+  assert.equal(inputSchema.safeParse({ user_input: 'hello', ai_consent: false }).success, true);
+  assert.equal(inputSchema.safeParse({ user_input: 'hello', ai_consent: 'yes' }).success, false);
+  assert.equal(payloadSchema.safeParse({ payload: {}, ai_consent: true }).success, true);
+  assert.equal(payloadSchema.safeParse({ payload: {}, ai_consent: 1 }).success, false);
+});
+
 test('rejects unknown request fields', () => {
   assert.equal(inputSchema.safeParse({ user_input: 'hello', extra: true }).success, false);
   assert.equal(payloadSchema.safeParse({ payload: {}, extra: true }).success, false);

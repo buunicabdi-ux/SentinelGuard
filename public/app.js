@@ -26,6 +26,7 @@
     textCount: $('#input-count-text'),
     jsonCount: $('#input-count-json'),
     inspect: $('#inspect-button'),
+    aiConsent: $('#ai-consent'),
     clear: $('#clear-button'),
     error: $('#error-message'),
     examples: $('#example-list'),
@@ -57,15 +58,21 @@
 
   function updateAIStatus(status) {
     const available = status === 'available';
-    const label = available ? 'AI analysis is supplementary; deterministic security analysis remains authoritative.'
-      : 'AI analysis unavailable — deterministic security analysis is active.';
+    const labels = {
+      available: 'AI analysis is supplementary; deterministic security analysis remains authoritative.',
+      not_requested: 'AI analysis not requested — deterministic security analysis is active.',
+      skipped_sensitive: 'AI analysis skipped because the input appears to contain a secret.',
+      unavailable: 'AI analysis unavailable — deterministic security analysis is active.'
+    };
+    const label = labels[status] || labels.unavailable;
     elements.inputAiStatus.replaceChildren(
       element('span', `status-dot ${available ? '' : 'status-dot-muted'}`),
       document.createTextNode(label)
     );
     elements.aiStatus.replaceChildren(
       element('span', `status-dot ${available ? '' : 'status-dot-muted'}`),
-      document.createTextNode(available ? 'AI supplementary' : 'AI not active')
+      document.createTextNode(available ? 'AI supplementary'
+        : status === 'not_requested' ? 'AI not requested' : 'AI not active')
     );
   }
 
@@ -106,7 +113,9 @@
     })) : [];
     const ai = data.ai && typeof data.ai === 'object' ? {
       enabled: data.ai.enabled === true,
-      status: data.ai.status === 'available' ? 'available' : 'unavailable',
+      status: ['available', 'not_requested', 'skipped_sensitive'].includes(data.ai.status)
+        ? data.ai.status
+        : 'unavailable',
       ...(typeof data.ai.summary === 'string' ? { summary: redactSensitive(safeString(data.ai.summary, 500)) } : {}),
       ...(typeof data.ai.explanation === 'string' ? { explanation: redactSensitive(safeString(data.ai.explanation, 1000)) } : {}),
       ...(Array.isArray(data.ai.indicators) ? { indicators: data.ai.indicators.slice(0, 8).map((item) => redactSensitive(safeString(item, 160))) } : {}),
@@ -365,7 +374,12 @@
       }
       aiCard.append(element('p', '', 'AI context cannot change deterministic findings or risk score.'));
     } else {
-      aiCard.append(element('p', '', 'AI analysis unavailable — deterministic security analysis is still active.'));
+      const aiMessages = {
+        not_requested: 'AI analysis was not requested. Deterministic security analysis is active.',
+        skipped_sensitive: 'AI analysis was skipped because the input matched a common secret pattern. Deterministic security analysis is active.',
+        unavailable: 'AI analysis unavailable — deterministic security analysis is still active.'
+      };
+      aiCard.append(element('p', '', aiMessages[data.ai.status] || aiMessages.unavailable));
     }
     elements.result.append(aiCard);
 
@@ -461,6 +475,7 @@
     } else {
       requestBody = { user_input: raw };
     }
+    requestBody.ai_consent = elements.aiConsent.checked;
 
     elements.inspect.disabled = true;
     elements.inspect.textContent = 'Inspecting…';
@@ -514,6 +529,7 @@
     } finally {
       elements.inspect.disabled = false;
       elements.inspect.textContent = '⌕ Inspect input →';
+      elements.aiConsent.checked = false;
     }
   }
 
@@ -543,6 +559,7 @@
   function clearCurrent() {
     elements.textInput.value = '';
     elements.jsonInput.value = '';
+    elements.aiConsent.checked = false;
     updateCounter();
     hideError();
     elements.result.hidden = true;
@@ -551,7 +568,7 @@
     elements.empty.hidden = false;
     elements.resultAnnouncement.textContent = '';
     currentReport = null;
-    updateAIStatus('unavailable');
+    updateAIStatus('not_requested');
     activeInput().focus();
   }
 

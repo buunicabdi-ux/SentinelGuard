@@ -6,10 +6,12 @@ function createInspectSchemas(maxInputChars) {
     user_input: z.string().min(1).max(maxInputChars).refine(
       (value) => value.trim().length > 0,
       'Input must not be empty'
-    )
+    ),
+    ai_consent: z.boolean().optional()
   }).strict();
   const payloadSchema = z.object({
-    payload: z.union([z.record(z.string(), z.unknown()), z.array(z.unknown())])
+    payload: z.union([z.record(z.string(), z.unknown()), z.array(z.unknown())]),
+    ai_consent: z.boolean().optional()
   }).strict();
 
   return { inputSchema, payloadSchema };

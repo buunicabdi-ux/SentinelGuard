@@ -73,8 +73,12 @@
               <button class="button button-primary" id="inspect-button" type="button"><span class="button-icon">⌕</span> Inspect input <span class="button-arrow">→</span></button>
               <button class="button button-quiet" id="clear-button" type="button" aria-label="Reset the current input and result">Reset current</button>
             </div>
+            <label class="ai-consent" for="ai-consent">
+              <input id="ai-consent" type="checkbox">
+              <span>I consent to sending a redacted, bounded excerpt of this input to Featherless for optional AI analysis. I understand secrets may not all be detected.</span>
+            </label>
             <div id="error-message" class="alert alert-error" role="alert" hidden></div>
-            <p class="privacy-note"><span class="lock-icon" aria-hidden="true">i</span><span><strong>Privacy:</strong> Your content is sent to this SentinelGuard service for inspection. Up to 20 recent results stay in this browser’s local storage, which is not encrypted secure storage. Exports may include input excerpts; redaction is heuristic, so review reports before sharing.</span></p>
+            <p class="privacy-note"><span class="lock-icon" aria-hidden="true">i</span><span><strong>Privacy:</strong> Your content is sent to this SentinelGuard service for deterministic inspection. Featherless receives a maximum 1,200-character redacted excerpt only when you check the consent box. Inputs matching common secret patterns are not sent to Featherless. Detection is heuristic and cannot guarantee secret removal. Up to 20 recent results stay in this browser’s local storage, which is not encrypted secure storage. Exports may include input excerpts; review reports before sharing.</span></p>
             <p class="ai-availability" id="input-ai-status" role="status"><span class="status-dot status-dot-muted" aria-hidden="true"></span> AI analysis unavailable — deterministic security analysis is active.</p>
           </section>
 

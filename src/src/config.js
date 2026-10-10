@@ -82,6 +82,9 @@ function loadConfig(env) {
     throw new Error('LOG_LEVEL must be fatal, error, warn, info, or debug');
   }
 
+  const featherlessApiKey = (env.FEATHERLESS_API_KEY || '').trim();
+  const featherlessModel = (env.FEATHERLESS_MODEL || 'Qwen/Qwen2.5-7B-Instruct').trim();
+
   return Object.freeze({
     nodeEnv,
     port,
@@ -90,7 +93,9 @@ function loadConfig(env) {
     maxInputChars,
     rateLimitWindowMs,
     rateLimitMax,
-    logLevel
+    logLevel,
+    featherlessApiKey,
+    featherlessModel
   });
 }
 
